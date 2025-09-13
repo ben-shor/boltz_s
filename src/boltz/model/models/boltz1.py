@@ -1165,7 +1165,7 @@ class Boltz1(LightningModule):
             pred_dict["coords"] = out["sample_atom_coords"]
             pred_dict["s"] = out["s"]
             pred_dict["z"] = out["z"]
-            if self.predict_args.get("write_confidence_summary", True):
+            if self.predict_args.get("write_confidence_summary", True) and "complex_plddt" in out:
                 pred_dict["confidence_score"] = (
                     4 * out["complex_plddt"]
                     + (
