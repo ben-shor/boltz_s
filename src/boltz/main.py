@@ -18,6 +18,7 @@ from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.utilities import rank_zero_only
 from rdkit import Chem
 from tqdm import tqdm
+import yaml
 
 from boltz.data import const
 from boltz.data.module.inference import BoltzInferenceDataModule
@@ -977,6 +978,12 @@ def cli() -> None:
     help="The model to use for prediction. Default is boltz2.",
 )
 @click.option(
+    "--model_config",
+    type=str,
+    help="The path to yaml containing the config of models. Needed for trained model with different args.",
+    default=None,
+)
+@click.option(
     "--method",
     type=str,
     help="The method to use for prediction. Default is None.",
@@ -1069,6 +1076,7 @@ def predict(  # noqa: C901, PLR0915, PLR0912
     api_key_value: Optional[str] = None,
     use_potentials: bool = False,
     model: Literal["boltz1", "boltz2"] = "boltz2",
+    model_config: Optional[str] = None,
     method: Optional[str] = None,
     affinity_mw_correction: Optional[bool] = False,
     preprocessing_threads: int = 1,
@@ -1226,22 +1234,39 @@ def predict(  # noqa: C901, PLR0915, PLR0912
                 devices = max(1, min(len(filtered_manifest.records), devices))
 
     # Set up model parameters
-    if model == "boltz2":
-        diffusion_params = Boltz2DiffusionParams()
-        step_scale = 1.5 if step_scale is None else step_scale
-        diffusion_params.step_scale = step_scale
-        pairformer_args = PairformerArgsV2()
-    else:
-        diffusion_params = BoltzDiffusionParams()
-        step_scale = 1.638 if step_scale is None else step_scale
-        diffusion_params.step_scale = step_scale
-        pairformer_args = PairformerArgs()
+    if model_config is None:
+        if model == "boltz2":
+            diffusion_params = Boltz2DiffusionParams()
+            step_scale = 1.5 if step_scale is None else step_scale
+            diffusion_params.step_scale = step_scale
+            pairformer_args = PairformerArgsV2()
+        else:
+            diffusion_params = BoltzDiffusionParams()
+            step_scale = 1.638 if step_scale is None else step_scale
+            diffusion_params.step_scale = step_scale
+            pairformer_args = PairformerArgs()
 
-    msa_args = MSAModuleArgs(
-        subsample_msa=subsample_msa,
-        num_subsampled_msa=num_subsampled_msa,
-        use_paired_feature=model == "boltz2",
-    )
+        msa_args = MSAModuleArgs(
+            subsample_msa=subsample_msa,
+            num_subsampled_msa=num_subsampled_msa,
+            use_paired_feature=model == "boltz2",
+        )
+
+        steering_args = BoltzSteeringParams()
+        steering_args.fk_steering = use_potentials
+        steering_args.physical_guidance_update = use_potentials
+    else:
+        if not model == "boltz1":
+            raise ValueError("Custom model config is only supported for Boltz-1.")
+        c = yaml.safe_load(model_config)
+        diffusion_params = BoltzDiffusionParams(**c["model"]["diffusion_process_args"],
+                                                step_scale=1.638 if step_scale is None else step_scale)
+        pairformer_args = PairformerArgs(**c["model"]["pairformer_args"])
+        msa_args = MSAModuleArgs(**c["model"]["msa_args"])
+        steering_args = BoltzSteeringParams(**c["model"]["steering_args"])
+        steering_args.fk_steering = use_potentials
+        steering_args.physical_guidance_update = use_potentials
+
 
     # Create prediction writer
     pred_writer = BoltzWriter(
@@ -1306,9 +1331,7 @@ def predict(  # noqa: C901, PLR0915, PLR0912
             "write_full_pde": write_full_pde,
         }
 
-        steering_args = BoltzSteeringParams()
-        steering_args.fk_steering = use_potentials
-        steering_args.physical_guidance_update = use_potentials
+
 
         model_cls = Boltz2 if model == "boltz2" else Boltz1
         model_module = model_cls.load_from_checkpoint(
