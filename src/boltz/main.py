@@ -1258,7 +1258,7 @@ def predict(  # noqa: C901, PLR0915, PLR0912
     else:
         if not model == "boltz1":
             raise ValueError("Custom model config is only supported for Boltz-1.")
-        c = yaml.safe_load(model_config)
+        c = yaml.load(open(model_config, "r"), Loader=yaml.FullLoader)
         diffusion_params = BoltzDiffusionParams(**c["model"]["diffusion_process_args"],
                                                 step_scale=1.638 if step_scale is None else step_scale)
         pairformer_args = PairformerArgs(**c["model"]["pairformer_args"])
