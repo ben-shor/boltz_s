@@ -1263,7 +1263,8 @@ def predict(  # noqa: C901, PLR0915, PLR0912
         step_scale = 1.638 if step_scale is None else step_scale
         diffusion_params.step_scale = step_scale
         pairformer_args = PairformerArgs(**c["model"]["pairformer_args"])
-        msa_args = MSAModuleArgs(**c["model"]["msa_args"])
+        msa_args = MSAModuleArgs(**c["model"]["msa_args"],
+                                 use_paired_feature=model == "boltz2",)
         steering_args = BoltzSteeringParams(**c["model"]["steering_args"])
         steering_args.fk_steering = use_potentials
         steering_args.physical_guidance_update = use_potentials
