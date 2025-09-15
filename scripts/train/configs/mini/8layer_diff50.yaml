@@ -4,22 +4,22 @@ trainer:
   num_nodes: "auto"
   precision: 32
   gradient_clip_val: 10.0
-  max_epochs: -1
+  max_epochs: 80 # total of 50K steps. (10K samples_per_epoch / (8 GPUs * 2 grad_acc) = 625 steps per epoch)
   accumulate_grad_batches: 2    # to adjust depending on the number of devices
 
 # Optional set wandb here
 wandb:
-  name: lrp0003
+  name: diff50
   project: boltz_train
   entity: null
 
 
-output: /sci/nosnap/dina/bshor/202509_boltz_train/train_output/8layer_lrp0003
+output: /sci/nosnap/dina/bshor/202509_boltz_train/train_output/8layer_diff50
 # pretrained: PATH_TO_CHECKPOINT_FILE
 resume: null
 disable_checkpoint: false
 matmul_precision: null
-save_top_k: 5
+save_top_k: 2
 
 data:
   datasets:
@@ -150,7 +150,8 @@ model:
 
   training_args:
     recycling_steps: 3
-    sampling_steps: 200
+#    sampling_steps: 200
+    sampling_steps: 50
     diffusion_multiplicity: 16
     diffusion_samples: 1
     confidence_loss_weight: 3e-3
@@ -171,7 +172,8 @@ model:
 
   validation_args:
     recycling_steps: 3
-    sampling_steps: 200
+#    sampling_steps: 200
+    sampling_steps: 50
     diffusion_samples: 5
     symmetry_correction: true
     run_confidence_sequentially: true

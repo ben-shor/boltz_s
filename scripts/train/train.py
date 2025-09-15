@@ -247,7 +247,7 @@ def train(raw_config: str, args: list[str]) -> None:  # noqa: C901, PLR0912, PLR
         model_module.strict_loading = False
 
     ckpt_path = cfg.resume
-    if ckpt_path is None and last_ckpt_path and last_ckpt_path.exists():
+    if last_ckpt_path and last_ckpt_path.exists():
         print(f"Resuming from last checkpoint at {last_ckpt_path}")
         ckpt_path = str(last_ckpt_path)
 
