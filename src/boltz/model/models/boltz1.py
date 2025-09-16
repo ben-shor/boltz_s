@@ -1,5 +1,6 @@
 import gc
 import random
+import time
 from typing import Any, Optional
 
 import torch
@@ -280,11 +281,15 @@ class Boltz1(LightningModule):
         run_confidence_sequentially: bool = False,
     ) -> dict[str, Tensor]:
         dict_out = {}
+        timings = {}
+
+        start_time_all = time.time()
 
         # Compute input embeddings
         with torch.set_grad_enabled(
             self.training and self.structure_prediction_training
         ):
+            start_time_embed = time.time()
             s_inputs = self.input_embedder(feats)
 
             # Initialize the sequence and pairwise embeddings
@@ -305,6 +310,9 @@ class Boltz1(LightningModule):
             mask = feats["token_pad_mask"].float()
             pair_mask = mask[:, :, None] * mask[:, None, :]
 
+            timings["input_embedding"] = time.time() - start_time_embed
+
+            start_time_trunk = time.time()
             for i in range(recycling_steps + 1):
                 with torch.set_grad_enabled(self.training and (i == recycling_steps)):
                     # Fixes an issue with unused parameters in autocast
@@ -345,8 +353,11 @@ class Boltz1(LightningModule):
                 "s": s,
                 "z": z,
             }
+            timings["trunk"] = time.time() - start_time_trunk
+
 
         # Compute structure module
+        start_time_struct = time.time()
         if self.training and self.structure_prediction_training:
             dict_out.update(
                 self.structure_module(
@@ -375,7 +386,9 @@ class Boltz1(LightningModule):
                     steering_args=self.steering_args,
                 )
             )
+        timings["structure_module"] = time.time() - start_time_struct
 
+        start_time_confidence = time.time()
         if self.confidence_prediction:
             dict_out.update(
                 self.confidence_module(
@@ -397,6 +410,9 @@ class Boltz1(LightningModule):
             )
         if self.confidence_prediction and self.confidence_module.use_s_diffusion:
             dict_out.pop("diff_token_repr", None)
+        timings["confidence_module"] = time.time() - start_time_confidence
+        timings["total_time"] = time.time() - start_time_all
+        dict_out["timings"] = timings
         return dict_out
 
     def get_true_coordinates(
