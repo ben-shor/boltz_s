@@ -83,6 +83,7 @@ class BoltzWriter(BasePredictionWriter):
             if "timings" in prediction:
                 timings = prediction["timings"]
                 print(f"Timings for batch {batch_idx}: {timings}")
+                (self.output_dir / record.id).mkdir(exist_ok=True)
                 path = self.output_dir / record.id / "timings.json"
                 with path.open("w") as f:
                     json.dump(timings, f, indent=4)
