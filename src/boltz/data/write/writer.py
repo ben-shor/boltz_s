@@ -81,12 +81,12 @@ class BoltzWriter(BasePredictionWriter):
         # Iterate over the records
         for record, coord, pad_mask in zip(records, coords, pad_masks):
             if "timings" in prediction:
-                timings = prediction["timings"]
-                print(f"Timings for batch {batch_idx}: {timings}")
+                rounded_timings = {k: round(v, 3) for k, v in prediction["timings"].items()}
+                print(f"Timings for batch {batch_idx}: {rounded_timings}")
                 (self.output_dir / record.id).mkdir(exist_ok=True)
                 path = self.output_dir / record.id / "timings.json"
                 with path.open("w") as f:
-                    json.dump(timings, f, indent=4)
+                    json.dump(prediction["timings"], f, indent=4)
 
             # Load the structure
             path = self.data_dir / f"{record.id}.npz"
