@@ -14,7 +14,7 @@ wandb:
   entity: null
 
 
-output: /sci/nosnap/dina/bshor/202509_boltz_train/train_output/8layer_lrp0003
+output: /sci/nosnap/dina/bshor/202509_boltz_train/train_output/v3_teacher
 # pretrained: PATH_TO_CHECKPOINT_FILE
 resume: null
 disable_checkpoint: false
