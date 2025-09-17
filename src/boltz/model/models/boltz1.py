@@ -369,7 +369,7 @@ class Boltz1(LightningModule):
                         max_parallel_samples=max_parallel_samples,
                         run_confidence_sequentially=run_confidence_sequentially,
                     )
-                teacher_pdistogram = teacher_out["pdistogram"].detach()
+                # teacher_pdistogram = teacher_out["pdistogram"].detach()
 
                 # TODO: try different loss functions - cross entropy, mse, EMD (Wassterstein)
                 # pdist_loss = torch.nn.functional.kl_div(
@@ -383,7 +383,7 @@ class Boltz1(LightningModule):
                 # print("pdist loss from teacher", pdist_loss, pdist_loss_cross_ent)
 
                 # must use
-                pdist_loss, _ = distogram_teacher_loss(dict_out, teacher_pdistogram, feats)
+                pdist_loss, _ = distogram_teacher_loss(dict_out, teacher_out, feats)
                 print("pdist loss from teacher", pdist_loss)
 
                 # dict_out["teacher_pdistogram"] = teacher_pdistogram
