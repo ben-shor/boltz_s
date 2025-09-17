@@ -78,6 +78,7 @@ class Boltz1(LightningModule):
         predict_args: Optional[dict[str, Any]] = None,
         steering_args: Optional[dict[str, Any]] = None,
         use_kernels: bool = False,
+        teacher_model: Optional[LightningModule] = None,
     ) -> None:
         super().__init__()
 
@@ -262,6 +263,8 @@ class Boltz1(LightningModule):
                 if name.split(".")[0] != "confidence_module":
                     param.requires_grad = False
 
+        self.teacher_model = teacher_model
+
     def setup(self, stage: str) -> None:
         """Set the model for training, validation and inference."""
         if stage == "predict" and not (
@@ -348,6 +351,32 @@ class Boltz1(LightningModule):
                     )
 
             pdistogram = self.distogram_module(z)
+
+            pdist_loss = torch.tensor(0.0).to(pdistogram.device)
+            if self.teacher_model:
+                with torch.no_grad():
+                    teacher_out = self.teacher_model(
+                        feats,
+                        recycling_steps=recycling_steps,
+                        num_sampling_steps=num_sampling_steps,
+                        multiplicity_diffusion_train=multiplicity_diffusion_train,
+                        diffusion_samples=diffusion_samples,
+                        max_parallel_samples=max_parallel_samples,
+                        run_confidence_sequentially=run_confidence_sequentially,
+                    )
+                teacher_pdistogram = teacher_out["pdistogram"].detach()
+
+                # TODO: try different loss functions - cross entropy, mse, EMD (Wassterstein)
+                pdist_loss = torch.nn.functional.kl_div(
+                    input=torch.log_softmax(pdistogram, dim=-1),
+                    target=torch.softmax(teacher_pdistogram, dim=-1), # in kl_div, target is expected without log
+                    reduction="batchmean",
+                )
+                print("pdist loss from teacher", pdist_loss)
+                dict_out["teacher_pdistogram"] = teacher_pdistogram
+                dict_out["pdistogram_loss"] = pdist_loss
+
+
             dict_out = {
                 "pdistogram": pdistogram,
                 "s": s,
@@ -505,6 +534,12 @@ class Boltz1(LightningModule):
             disto_loss = 0.0
             diffusion_loss_dict = {"loss": 0.0, "loss_breakdown": {}}
 
+        teacher_loss = 0.0
+        if self.teacher_model:
+            print("shape of pdistogram loss", out["pdistogram"].shape)
+            self.log("train/teacher_pdistogram_loss", out["pdistogram_loss"])
+            teacher_loss = out["pdistogram_loss"]
+
         if self.confidence_prediction:
             # confidence model symmetry correction
             true_coords, _, _, true_coords_resolved_mask = self.get_true_coordinates(
@@ -533,6 +568,7 @@ class Boltz1(LightningModule):
             self.training_args.confidence_loss_weight * confidence_loss_dict["loss"]
             + self.training_args.diffusion_loss_weight * diffusion_loss_dict["loss"]
             + self.training_args.distogram_loss_weight * disto_loss
+            + self.training_args.teacher_loss_weight * teacher_loss
         )
         # Log losses
         self.log("train/distogram_loss", disto_loss)
@@ -1182,6 +1218,8 @@ class Boltz1(LightningModule):
             pred_dict["s"] = out["s"]
             pred_dict["z"] = out["z"]
             pred_dict["timings"] = out["timings"]
+            if "pdistogram_loss" in out:
+                pred_dict["pdistogram_loss"] = out["pdistogram_loss"]
             if self.predict_args.get("write_confidence_summary", True) and "complex_plddt" in out:
                 pred_dict["confidence_score"] = (
                     4 * out["complex_plddt"]
@@ -1258,6 +1296,9 @@ class Boltz1(LightningModule):
     def on_save_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         if self.use_ema:
             checkpoint["ema"] = self.ema.state_dict()
+
+        if "teacher_model" in checkpoint:
+            del checkpoint["teacher_model"]
 
     def on_load_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         if self.use_ema and "ema" in checkpoint:

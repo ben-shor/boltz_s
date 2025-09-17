@@ -22,6 +22,55 @@ from pytorch_lightning.utilities import rank_zero_only
 from boltz.data.module.training import BoltzTrainingDataModule, DataConfig
 
 
+def get_teacher_model(model_name: str, checkpoint_path: str) -> LightningModule:
+    if model_name == "boltz1":
+        from boltz.model.models.boltz1 import Boltz1
+
+        pairformer_args = dict(num_blocks=48, num_heads=16, dropout=0.25,
+                               activation_checkpointing=False, # No need because no optimization
+                               offload_to_cpu=False)
+
+        predict_args = {
+            "recycling_steps": 0,
+            "sampling_steps": 200,
+            "diffusion_samples": 1,
+            "max_parallel_samples": 1,
+            "write_confidence_summary": False,
+            "write_full_pae": False,
+            "write_full_pde": False,
+        }
+
+        diffusion_params = dict(gamma_0=0.605, gamma_min=1.107, noise_scale=0.901, rho=8, step_scale=1.638,
+                                sigma_min=0.0004, sigma_max=160.0, sigma_data=16.0, P_mean=-1.2, P_std=1.5,
+                                coordinate_augmentation=True, alignment_reverse_diff=True, synchronize_sigmas=True,
+                                use_inference_model_cache=True)
+
+        msa_args = dict(msa_s=64, msa_blocks=4, msa_dropout=0.0, z_dropout=0.0, use_paired_feature=True,
+                        pairwise_head_width=32, pairwise_num_heads=4, activation_checkpointing=False,
+                        offload_to_cpu=False, subsample_msa=False, num_subsampled_msa=1024)
+
+        steering_args = dict(fk_steering=False, num_particles=3, fk_lambda=4.0, fk_resampling_interval=3,
+                             physical_guidance_update=False, contact_guidance_update=True, num_gd_steps=20)
+
+        model_module = Boltz1.load_from_checkpoint(
+            checkpoint_path=checkpoint_path,
+            strict=True,  # TODO: should this be false for loading without confidence
+            predict_args=predict_args,
+            map_location="cpu",
+            diffusion_process_args=diffusion_params,
+            ema=False,
+            use_kernels=False, # I am not sure what this is, something with acceleration?
+            pairformer_args=pairformer_args,
+            msa_args=msa_args,
+            steering_args=steering_args,
+        )
+        model_module.eval()
+        return model_module
+
+    else:
+        raise ValueError(f"Unknown model name: {model_name}")
+
+
 @dataclass
 class TrainConfig:
     """Train configuration.
@@ -76,6 +125,7 @@ class TrainConfig:
     debug: bool = False
     strict_loading: bool = True
     load_confidence_from_trunk: Optional[bool] = False
+    teacher_model: Optional[dict] = None
 
 
 def train(raw_config: str, args: list[str]) -> None:  # noqa: C901, PLR0912, PLR0915
@@ -165,6 +215,8 @@ def train(raw_config: str, args: list[str]) -> None:  # noqa: C901, PLR0912, PLR
 
         if cfg.load_confidence_from_trunk:
             os.remove(file_path)
+    if cfg.teacher_model:
+        model_module.teacher_model = get_teacher_model(**cfg.teacher_model)
 
     # Create checkpoint callback
     callbacks = []
