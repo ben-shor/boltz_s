@@ -351,6 +351,11 @@ class Boltz1(LightningModule):
                     )
 
             pdistogram = self.distogram_module(z)
+            dict_out = {
+                "pdistogram": pdistogram,
+                "s": s,
+                "z": z,
+            }
 
             if self.teacher_model:
                 start_time_teacher = time.time()
@@ -378,18 +383,14 @@ class Boltz1(LightningModule):
                 # print("pdist loss from teacher", pdist_loss, pdist_loss_cross_ent)
 
                 # must use
-                pdist_loss, _ = distogram_teacher_loss(pdistogram, teacher_pdistogram, feats)
+                pdist_loss, _ = distogram_teacher_loss(dict_out, teacher_pdistogram, feats)
                 print("pdist loss from teacher", pdist_loss)
 
-                dict_out["teacher_pdistogram"] = teacher_pdistogram
+                # dict_out["teacher_pdistogram"] = teacher_pdistogram
                 dict_out["pdistogram_loss"] = pdist_loss
                 timings["teacher_model"] = time.time() - start_time_teacher
 
-            dict_out = {
-                "pdistogram": pdistogram,
-                "s": s,
-                "z": z,
-            }
+
             timings["trunk"] = time.time() - start_time_trunk
 
         # Compute structure module
