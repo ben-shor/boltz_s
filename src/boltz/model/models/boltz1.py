@@ -368,7 +368,7 @@ class Boltz1(LightningModule):
                 with torch.no_grad():
                     teacher_out = self.teacher_model(
                         feats,
-                        recycling_steps=recycling_steps,
+                        recycling_steps=0,
                         num_sampling_steps=num_sampling_steps,
                         multiplicity_diffusion_train=multiplicity_diffusion_train,
                         diffusion_samples=diffusion_samples,

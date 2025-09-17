@@ -31,7 +31,7 @@ def get_teacher_model(model_name: str, checkpoint_path: str) -> LightningModule:
                                offload_to_cpu=False)
 
         predict_args = {
-            "recycling_steps": 0,
+            "recycling_steps": 0, # This is ignored
             "sampling_steps": 200,
             "diffusion_samples": 1,
             "max_parallel_samples": 1,
