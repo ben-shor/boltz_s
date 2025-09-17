@@ -16,7 +16,7 @@ from boltz.data.feature.symmetry import (
     minimum_symmetry_coords,
 )
 from boltz.model.loss.confidence import confidence_loss
-from boltz.model.loss.distogram import distogram_loss
+from boltz.model.loss.distogram import distogram_loss, distogram_teacher_loss
 from boltz.model.loss.validation import (
     compute_pae_mae,
     compute_pde_mae,
@@ -352,8 +352,8 @@ class Boltz1(LightningModule):
 
             pdistogram = self.distogram_module(z)
 
-            pdist_loss = torch.tensor(0.0).to(pdistogram.device)
             if self.teacher_model:
+                start_time_teacher = time.time()
                 with torch.no_grad():
                     teacher_out = self.teacher_model(
                         feats,
@@ -367,15 +367,23 @@ class Boltz1(LightningModule):
                 teacher_pdistogram = teacher_out["pdistogram"].detach()
 
                 # TODO: try different loss functions - cross entropy, mse, EMD (Wassterstein)
-                pdist_loss = torch.nn.functional.kl_div(
-                    input=torch.log_softmax(pdistogram, dim=-1),
-                    target=torch.softmax(teacher_pdistogram, dim=-1), # in kl_div, target is expected without log
-                    reduction="batchmean",
-                )
+                # pdist_loss = torch.nn.functional.kl_div(
+                #     input=torch.log_softmax(pdistogram, dim=-1),
+                #     target=torch.softmax(teacher_pdistogram, dim=-1), # in kl_div, target is expected without log
+                #     reduction="batchmean",
+                # )
+                #
+                # teacher_probs = torch.softmax(teacher_pdistogram, dim=-1)
+                # pdist_loss_cross_ent = torch.sum(- teacher_probs * torch.nn.functional.log_softmax(pdistogram, dim=-1))
+                # print("pdist loss from teacher", pdist_loss, pdist_loss_cross_ent)
+
+                # must use
+                pdist_loss, _ = distogram_teacher_loss(pdistogram, teacher_pdistogram, feats)
                 print("pdist loss from teacher", pdist_loss)
+
                 dict_out["teacher_pdistogram"] = teacher_pdistogram
                 dict_out["pdistogram_loss"] = pdist_loss
-
+                timings["teacher_model"] = time.time() - start_time_teacher
 
             dict_out = {
                 "pdistogram": pdistogram,
@@ -383,7 +391,6 @@ class Boltz1(LightningModule):
                 "z": z,
             }
             timings["trunk"] = time.time() - start_time_trunk
-
 
         # Compute structure module
         start_time_struct = time.time()
@@ -442,6 +449,9 @@ class Boltz1(LightningModule):
         timings["confidence_module"] = time.time() - start_time_confidence
         timings["total_time"] = time.time() - start_time_all
         dict_out["timings"] = timings
+
+        print("model timings:", timings)
+
         return dict_out
 
     def get_true_coordinates(
@@ -536,7 +546,8 @@ class Boltz1(LightningModule):
 
         teacher_loss = 0.0
         if self.teacher_model:
-            print("shape of pdistogram loss", out["pdistogram"].shape)
+            print("all keys", list(out.keys()))
+            print("shape of pdistogram loss", out["pdistogram_loss"].shape)
             self.log("train/teacher_pdistogram_loss", out["pdistogram_loss"])
             teacher_loss = out["pdistogram_loss"]
 
