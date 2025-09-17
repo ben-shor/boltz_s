@@ -45,7 +45,7 @@ def get_teacher_model(model_name: str, checkpoint_path: str) -> LightningModule:
                                 coordinate_augmentation=True, alignment_reverse_diff=True, synchronize_sigmas=True,
                                 use_inference_model_cache=True)
 
-        msa_args = dict(msa_s=64, msa_blocks=4, msa_dropout=0.0, z_dropout=0.0, use_paired_feature=True,
+        msa_args = dict(msa_s=64, msa_blocks=4, msa_dropout=0.0, z_dropout=0.0, use_paired_feature=False,
                         pairwise_head_width=32, pairwise_num_heads=4, activation_checkpointing=False,
                         offload_to_cpu=False, subsample_msa=False, num_subsampled_msa=1024)
 
