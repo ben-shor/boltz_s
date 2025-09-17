@@ -161,7 +161,7 @@ model:
     confidence_loss_weight: 3e-3
     diffusion_loss_weight: 4.0
     distogram_loss_weight: 3e-2
-    teacher_loss_weight: 1.0
+    teacher_loss_weight: 1e-2
     adam_beta_1: 0.9
     adam_beta_2: 0.95
     adam_eps: 0.00000001

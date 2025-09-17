@@ -282,6 +282,7 @@ class Boltz1(LightningModule):
         diffusion_samples: int = 1,
         max_parallel_samples: Optional[int] = None,
         run_confidence_sequentially: bool = False,
+        return_after_trunk: bool = False,
     ) -> dict[str, Tensor]:
         dict_out = {}
         timings = {}
@@ -318,6 +319,7 @@ class Boltz1(LightningModule):
             start_time_trunk = time.time()
             for i in range(recycling_steps + 1):
                 with torch.set_grad_enabled(self.training and (i == recycling_steps)):
+                    print("running recycle step", i, self.training)
                     # Fixes an issue with unused parameters in autocast
                     if (
                         self.training
@@ -356,6 +358,10 @@ class Boltz1(LightningModule):
                 "s": s,
                 "z": z,
             }
+            timings["trunk"] = time.time() - start_time_trunk
+            if return_after_trunk:
+                print("timings after trunk:", timings)
+                return dict_out
 
             if self.teacher_model:
                 start_time_teacher = time.time()
@@ -368,6 +374,7 @@ class Boltz1(LightningModule):
                         diffusion_samples=diffusion_samples,
                         max_parallel_samples=max_parallel_samples,
                         run_confidence_sequentially=run_confidence_sequentially,
+                        return_after_trunk=True,
                     )
                 # teacher_pdistogram = teacher_out["pdistogram"].detach()
 
@@ -389,9 +396,6 @@ class Boltz1(LightningModule):
                 # dict_out["teacher_pdistogram"] = teacher_pdistogram
                 dict_out["pdistogram_loss"] = pdist_loss
                 timings["teacher_model"] = time.time() - start_time_teacher
-
-
-            timings["trunk"] = time.time() - start_time_trunk
 
         # Compute structure module
         start_time_struct = time.time()
