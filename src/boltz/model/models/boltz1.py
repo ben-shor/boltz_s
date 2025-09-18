@@ -319,7 +319,6 @@ class Boltz1(LightningModule):
             start_time_trunk = time.time()
             for i in range(recycling_steps + 1):
                 with torch.set_grad_enabled(self.training and (i == recycling_steps)):
-                    print("running recycle step", i, self.training)
                     # Fixes an issue with unused parameters in autocast
                     if (
                         self.training
@@ -360,7 +359,6 @@ class Boltz1(LightningModule):
             }
             timings["trunk"] = time.time() - start_time_trunk
             if return_after_trunk:
-                print("timings after trunk:", timings)
                 return dict_out
 
             if self.teacher_model:
@@ -368,6 +366,7 @@ class Boltz1(LightningModule):
                 with torch.no_grad():
                     teacher_out = self.teacher_model(
                         feats,
+                        # recycling_steps=recycling_steps,
                         recycling_steps=0,
                         num_sampling_steps=num_sampling_steps,
                         multiplicity_diffusion_train=multiplicity_diffusion_train,
@@ -376,22 +375,9 @@ class Boltz1(LightningModule):
                         run_confidence_sequentially=run_confidence_sequentially,
                         return_after_trunk=True,
                     )
-                # teacher_pdistogram = teacher_out["pdistogram"].detach()
-
                 # TODO: try different loss functions - cross entropy, mse, EMD (Wassterstein)
-                # pdist_loss = torch.nn.functional.kl_div(
-                #     input=torch.log_softmax(pdistogram, dim=-1),
-                #     target=torch.softmax(teacher_pdistogram, dim=-1), # in kl_div, target is expected without log
-                #     reduction="batchmean",
-                # )
-                #
-                # teacher_probs = torch.softmax(teacher_pdistogram, dim=-1)
-                # pdist_loss_cross_ent = torch.sum(- teacher_probs * torch.nn.functional.log_softmax(pdistogram, dim=-1))
-                # print("pdist loss from teacher", pdist_loss, pdist_loss_cross_ent)
 
-                # must use
                 pdist_loss, _ = distogram_teacher_loss(dict_out, teacher_out, feats)
-                print("pdist loss from teacher", pdist_loss)
 
                 # dict_out["teacher_pdistogram"] = teacher_pdistogram
                 dict_out["pdistogram_loss"] = pdist_loss
@@ -455,7 +441,7 @@ class Boltz1(LightningModule):
         timings["total_time"] = time.time() - start_time_all
         dict_out["timings"] = timings
 
-        print("model timings:", timings)
+        # print("model timings:", timings)
 
         return dict_out
 
@@ -551,8 +537,6 @@ class Boltz1(LightningModule):
 
         teacher_loss = 0.0
         if self.teacher_model:
-            print("all keys", list(out.keys()))
-            print("shape of pdistogram loss", out["pdistogram_loss"].shape)
             self.log("train/teacher_pdistogram_loss", out["pdistogram_loss"])
             teacher_loss = out["pdistogram_loss"]
 
