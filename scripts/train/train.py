@@ -50,7 +50,8 @@ class FrozenWrapper(torch.nn.Module):
     def named_parameters(self, prefix: str = "", recurse: bool = True):
         return iter([])
 
-def get_teacher_model(model_name: str, checkpoint_path: str) -> FrozenWrapper:
+
+def get_teacher_model(model_name: str, checkpoint_path: str) -> LightningModule:
     if model_name == "boltz1":
         from boltz.model.models.boltz1 import Boltz1
 
@@ -93,7 +94,8 @@ def get_teacher_model(model_name: str, checkpoint_path: str) -> FrozenWrapper:
             steering_args=steering_args,
         )
         model_module.eval()
-        return FrozenWrapper(model_module)
+        # return FrozenWrapper(model_module)
+        return model_module
 
     else:
         raise ValueError(f"Unknown model name: {model_name}")
