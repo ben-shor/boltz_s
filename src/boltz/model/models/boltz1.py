@@ -274,7 +274,7 @@ class Boltz1(LightningModule):
 
     def set_teacher_model(self, model: Optional[LightningModule]) -> None:
         # This force pytorch to not register the teacher model parameters
-        self.teacher_model = model
+        self.teacher_model = [model]
 
     def forward(
         self,
@@ -365,9 +365,13 @@ class Boltz1(LightningModule):
                 return dict_out
 
             if self.teacher_model:
+                if self.teacher_model[0].device != self.device:
+                    self.teacher_model[0] = self.teacher_model[0].to(self.device)
+                    print("Moved teacher model to device", self.device)
+
                 start_time_teacher = time.time()
                 with torch.no_grad():
-                    teacher_out = self.teacher_model(
+                    teacher_out = self.teacher_model[0](
                         feats,
                         # recycling_steps=recycling_steps,
                         recycling_steps=0,
