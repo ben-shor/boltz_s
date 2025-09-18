@@ -78,7 +78,6 @@ class Boltz1(LightningModule):
         predict_args: Optional[dict[str, Any]] = None,
         steering_args: Optional[dict[str, Any]] = None,
         use_kernels: bool = False,
-        teacher_model: Optional[LightningModule] = None,
     ) -> None:
         super().__init__()
 
@@ -263,7 +262,7 @@ class Boltz1(LightningModule):
                 if name.split(".")[0] != "confidence_module":
                     param.requires_grad = False
 
-        self.teacher_model = teacher_model
+        self.teacher_model = []
 
     def setup(self, stage: str) -> None:
         """Set the model for training, validation and inference."""
@@ -272,6 +271,10 @@ class Boltz1(LightningModule):
             and torch.cuda.get_device_properties(torch.device("cuda")).major >= 8.0  # noqa: PLR2004
         ):
             self.use_kernels = False
+
+    def set_teacher_model(self, model: Optional[LightningModule]) -> None:
+        # This force pytorch to not register the teacher model parameters
+        self.teacher_model = [model]
 
     def forward(
         self,
@@ -364,7 +367,7 @@ class Boltz1(LightningModule):
             if self.teacher_model:
                 start_time_teacher = time.time()
                 with torch.no_grad():
-                    teacher_out = self.teacher_model(
+                    teacher_out = self.teacher_model[0](
                         feats,
                         # recycling_steps=recycling_steps,
                         recycling_steps=0,
