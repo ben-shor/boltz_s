@@ -23,21 +23,32 @@ from boltz.data.module.training import BoltzTrainingDataModule, DataConfig
 
 
 class FrozenWrapper(torch.nn.Module):
+    """
+    Wraps a teacher model so it moves with .to(device),
+    but doesn't expose parameters to the optimizer or DDP.
+    """
     def __init__(self, module: torch.nn.Module):
         super().__init__()
-        self._module = module
+        self.module = module
+        self.module.eval()
+
+        # Convert all parameters into buffers
+        for name, param in list(self.module.named_parameters(recurse=True)):
+            # Remove parameter
+            delattr(self.module, name)
+            # Register as non-persistent buffer (won't bloat checkpoints)
+            self.module.register_buffer(name, param.data, persistent=False)
 
     def forward(self, *args, **kwargs):
         with torch.no_grad():
-            return self._module(*args, **kwargs)
+            return self.module(*args, **kwargs)
 
-    def parameters(self, recurse=True):
-        return iter([])  # no trainable params
-
-    def named_parameters(self, prefix: str = "", recurse: bool = True):
-        # same, avoids DDP complaints
+    # Make sure nothing looks like a trainable parameter
+    def parameters(self, recurse: bool = True):
         return iter([])
 
+    def named_parameters(self, prefix: str = "", recurse: bool = True):
+        return iter([])
 
 def get_teacher_model(model_name: str, checkpoint_path: str) -> FrozenWrapper:
     if model_name == "boltz1":
