@@ -22,7 +22,24 @@ from pytorch_lightning.utilities import rank_zero_only
 from boltz.data.module.training import BoltzTrainingDataModule, DataConfig
 
 
-def get_teacher_model(model_name: str, checkpoint_path: str) -> LightningModule:
+class FrozenWrapper(torch.nn.Module):
+    def __init__(self, module: torch.nn.Module):
+        super().__init__()
+        self._module = module
+
+    def forward(self, *args, **kwargs):
+        with torch.no_grad():
+            return self._module(*args, **kwargs)
+
+    def parameters(self, recurse=True):
+        return iter([])  # no trainable params
+
+    def named_parameters(self, prefix: str = "", recurse: bool = True):
+        # same, avoids DDP complaints
+        return iter([])
+
+
+def get_teacher_model(model_name: str, checkpoint_path: str) -> FrozenWrapper:
     if model_name == "boltz1":
         from boltz.model.models.boltz1 import Boltz1
 
@@ -65,7 +82,7 @@ def get_teacher_model(model_name: str, checkpoint_path: str) -> LightningModule:
             steering_args=steering_args,
         )
         model_module.eval()
-        return model_module
+        return FrozenWrapper(model_module)
 
     else:
         raise ValueError(f"Unknown model name: {model_name}")

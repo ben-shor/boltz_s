@@ -262,7 +262,7 @@ class Boltz1(LightningModule):
                 if name.split(".")[0] != "confidence_module":
                     param.requires_grad = False
 
-        self.teacher_model = []
+        self.teacher_model = None
 
     def setup(self, stage: str) -> None:
         """Set the model for training, validation and inference."""
@@ -274,7 +274,7 @@ class Boltz1(LightningModule):
 
     def set_teacher_model(self, model: Optional[LightningModule]) -> None:
         # This force pytorch to not register the teacher model parameters
-        self.teacher_model = [model]
+        self.teacher_model = model
 
     def forward(
         self,
@@ -367,7 +367,7 @@ class Boltz1(LightningModule):
             if self.teacher_model:
                 start_time_teacher = time.time()
                 with torch.no_grad():
-                    teacher_out = self.teacher_model[0](
+                    teacher_out = self.teacher_model(
                         feats,
                         # recycling_steps=recycling_steps,
                         recycling_steps=0,
