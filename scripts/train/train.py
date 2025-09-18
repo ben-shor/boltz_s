@@ -216,7 +216,7 @@ def train(raw_config: str, args: list[str]) -> None:  # noqa: C901, PLR0912, PLR
         if cfg.load_confidence_from_trunk:
             os.remove(file_path)
     if cfg.teacher_model:
-        model_module.teacher_model = get_teacher_model(**cfg.teacher_model)
+        model_module.set_teacher_model(get_teacher_model(**cfg.teacher_model))
 
     # Create checkpoint callback
     callbacks = []
