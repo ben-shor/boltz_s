@@ -364,7 +364,7 @@ class Boltz1(LightningModule):
             if return_after_trunk:
                 return dict_out
 
-            if self.teacher_model:
+            if self.teacher_model and self.training:
                 if self.teacher_model[0].device != self.device:
                     self.teacher_model[0] = self.teacher_model[0].to(self.device)
                     print("Moved teacher model to device", self.device)
