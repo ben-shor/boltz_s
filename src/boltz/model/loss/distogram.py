@@ -65,10 +65,18 @@ def distogram_teacher_loss(
     mask = mask * (1 - torch.eye(mask.shape[1])[None]).to(pred)
 
     # Compute the distogram loss
-    errors = -1 * torch.sum(
-        target * torch.nn.functional.log_softmax(pred, dim=-1),
-        dim=-1,
-    )
+    # errors = -1 * torch.sum(
+    # #    target * torch.nn.functional.log_softmax(pred, dim=-1),
+    #     -(torch.softmax(target, dim=-1) * torch.nn.functional.log_softmax(pred, dim=-1),
+    #     dim=-1,
+    # )
+    errors = torch.nn.functional.kl_div(
+        torch.nn.functional.log_softmax(pred, dim=-1),
+        torch.nn.functional.log_softmax(target, dim=-1),
+        log_target=True,
+        reduction="none"
+    ).sum(dim=-1)
+
     denom = 1e-5 + torch.sum(mask, dim=(-1, -2))
     mean = errors * mask
     mean = torch.sum(mean, dim=-1)

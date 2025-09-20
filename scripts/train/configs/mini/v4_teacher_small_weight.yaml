@@ -9,12 +9,12 @@ trainer:
 
 # Optional set wandb here
 wandb:
-  name: v4_teacher_small
+  name: v4_teacher_small2
   project: boltz_train
   entity: null
 
 
-output: /sci/nosnap/dina/bshor/202509_boltz_train/train_output/v4_teacher_small_weight
+output: /sci/nosnap/dina/bshor/202509_boltz_train/train_output/v4_teacher_small_weight2
 # pretrained: PATH_TO_CHECKPOINT_FILE
 resume: null
 disable_checkpoint: false
