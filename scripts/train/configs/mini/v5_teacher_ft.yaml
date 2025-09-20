@@ -15,7 +15,7 @@ wandb:
 
 
 output: /sci/nosnap/dina/bshor/202509_boltz_train/train_output/v5_teacher_ft
-pretrained: /sci/nosnap/dina/bshor/202509_boltz_train/train_output/train_output/8layer_lrp0003/boltz_train/rw9hwx3u/checkpoints/epoch=57-step=36250.ckpt
+pretrained: /sci/nosnap/dina/bshor/202509_boltz_train/train_output/8layer_lrp0003/boltz_train/rw9hwx3u/checkpoints/epoch=57-step=36250.ckpt
 resume: null
 disable_checkpoint: false
 matmul_precision: null
