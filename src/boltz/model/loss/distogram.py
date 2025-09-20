@@ -48,7 +48,7 @@ def distogram_loss(
     return global_loss, batch_loss
 
 
-def distogram_teacher_loss(
+def distogram_teacher_loss_kl(
     output: dict[str, Tensor],
     teacher_output: dict[str, Tensor],
     feats: dict[str, Tensor],
@@ -76,6 +76,34 @@ def distogram_teacher_loss(
         log_target=True,
         reduction="none"
     ).sum(dim=-1)
+
+    denom = 1e-5 + torch.sum(mask, dim=(-1, -2))
+    mean = errors * mask
+    mean = torch.sum(mean, dim=-1)
+    mean = mean / denom[..., None]
+    batch_loss = torch.sum(mean, dim=-1)
+    global_loss = torch.mean(batch_loss)
+    return global_loss, batch_loss
+
+
+def distogram_teacher_loss_ce(
+    output: dict[str, Tensor],
+    teacher_output: dict[str, Tensor],
+    feats: dict[str, Tensor],
+) -> tuple[Tensor, Tensor]:
+    # Get predicted distograms
+    pred = output["pdistogram"]
+
+    # Compute target distogram
+    target = teacher_output["pdistogram"]
+
+    # Combine target mask and padding mask
+    mask = feats["token_disto_mask"]
+    mask = mask[:, None, :] * mask[:, :, None]
+    mask = mask * (1 - torch.eye(mask.shape[1])[None]).to(pred)
+
+    # Compute the distogram loss
+    errors = -(torch.softmax(target, dim=-1) * torch.nn.functional.log_softmax(pred, dim=-1)).sum(dim=-1)
 
     denom = 1e-5 + torch.sum(mask, dim=(-1, -2))
     mean = errors * mask

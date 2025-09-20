@@ -16,7 +16,7 @@ from boltz.data.feature.symmetry import (
     minimum_symmetry_coords,
 )
 from boltz.model.loss.confidence import confidence_loss
-from boltz.model.loss.distogram import distogram_loss, distogram_teacher_loss
+from boltz.model.loss.distogram import distogram_loss, distogram_teacher_loss_kl, distogram_teacher_loss_ce
 from boltz.model.loss.validation import (
     compute_pae_mae,
     compute_pde_mae,
@@ -384,10 +384,14 @@ class Boltz1(LightningModule):
                     )
                 # TODO: try different loss functions - cross entropy, mse, EMD (Wassterstein)
 
-                pdist_loss, _ = distogram_teacher_loss(dict_out, teacher_out, feats)
+                pdist_loss_kl, _ = distogram_teacher_loss_kl(dict_out, teacher_out, feats)
+                pdist_loss_ce, _ = distogram_teacher_loss_ce(dict_out, teacher_out, feats)
+
+                print("KL loss:", pdist_loss_kl.item(), "CE loss:", pdist_loss_ce.item(), pdist_loss_kl.shape,
+                      pdist_loss_ce.shape)
 
                 # dict_out["teacher_pdistogram"] = teacher_pdistogram
-                dict_out["pdistogram_loss"] = pdist_loss
+                dict_out["pdistogram_loss"] = pdist_loss_kl
                 timings["teacher_model"] = time.time() - start_time_teacher
 
         # Compute structure module
