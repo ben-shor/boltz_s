@@ -277,7 +277,7 @@ def train(raw_config: str, args: list[str]) -> None:  # noqa: C901, PLR0912, PLR
         # Make sure all ranks see the same run_id
         create_run_id()
         while not run_id_file.exists():
-            print(f"Rank {os.getenv('RANK')}: Waiting for run_id file to be created...")
+            print(f"Rank {os.getenv('RANK')} {os.getenv('LOCAL_RANK')}: Waiting for run_id file to be created...")
             time.sleep(1)
         run_id = run_id_file.read_text().strip()
 

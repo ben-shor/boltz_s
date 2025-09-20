@@ -385,12 +385,14 @@ class Boltz1(LightningModule):
                 # TODO: try different loss functions - cross entropy, mse, EMD (Wassterstein)
 
                 pdist_loss_kl, _ = distogram_teacher_loss_kl(dict_out, teacher_out, feats)
-                pdist_loss_ce, _ = distogram_teacher_loss_ce(dict_out, teacher_out, feats)
+                # pdist_loss_ce, _ = distogram_teacher_loss_ce(dict_out, teacher_out, feats)
 
-                print("KL loss:", pdist_loss_kl.item(), "CE loss:", pdist_loss_ce.item(), pdist_loss_kl.shape,
-                      pdist_loss_ce.shape)
+                # print("KL loss:", pdist_loss_kl.item(), "CE loss:", pdist_loss_ce.item(), pdist_loss_kl.shape,
+                #       pdist_loss_ce.shape)
 
                 # dict_out["teacher_pdistogram"] = teacher_pdistogram
+                # KL works better because it ignores the entropy of the true distribution, and focus only on the diff
+                # between the two distributions
                 dict_out["pdistogram_loss"] = pdist_loss_kl
                 timings["teacher_model"] = time.time() - start_time_teacher
 
