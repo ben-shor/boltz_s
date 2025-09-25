@@ -576,12 +576,14 @@ class Boltz1(LightningModule):
                 "loss_breakdown": {},
             }
 
+        teacher_loss_weight = self.training_args.teacher_loss_weight if self.teacher_model else 0.0
+
         # Aggregate losses
         loss = (
             self.training_args.confidence_loss_weight * confidence_loss_dict["loss"]
             + self.training_args.diffusion_loss_weight * diffusion_loss_dict["loss"]
             + self.training_args.distogram_loss_weight * disto_loss
-            + self.training_args.teacher_loss_weight * teacher_loss
+            + teacher_loss_weight * teacher_loss
         )
         # Log losses
         self.log("train/distogram_loss", disto_loss)
