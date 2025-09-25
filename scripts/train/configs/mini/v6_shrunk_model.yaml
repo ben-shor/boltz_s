@@ -15,7 +15,7 @@ wandb:
 
 
 output: /sci/nosnap/dina/bshor/202509_boltz_train/train_output/shrunk
-pretrained: /sci/nosnap/dina/bshor/202509_boltz_train/boltz1_shrunk.ckpt
+pretrained: /sci/nosnap/dina/bshor/202509_boltz_train/data/boltz1_shrunk.ckpt
 resume: null
 disable_checkpoint: false
 matmul_precision: null
