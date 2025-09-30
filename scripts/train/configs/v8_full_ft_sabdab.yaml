@@ -43,10 +43,10 @@ data:
     - _target_: boltz.data.filter.dynamic.size.SizeFilter
       min_chains: 1
       max_chains: 300
-    - _target_: boltz.data.filter.dynamic.date.DateFilter
-#      date: "2021-09-30"
-      date: "2023-01-13"
-      ref: released
+#    - _target_: boltz.data.filter.dynamic.date.DateFilter
+##      date: "2021-09-30"
+#      date: "2023-01-13"
+#      ref: released
     - _target_: boltz.data.filter.dynamic.resolution.ResolutionFilter
       resolution: 4.0
 
@@ -165,7 +165,7 @@ model:
     base_lr: 0.0
 #    max_lr: 0.0018
     max_lr: 0.0009
-    lr_warmup_no_steps: 0
+    lr_warmup_no_steps: 10
     lr_start_decay_after_n_steps: 50000
     lr_decay_every_n_steps: 50000
     lr_decay_factor: 0.95
