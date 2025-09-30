@@ -44,7 +44,8 @@ data:
       min_chains: 1
       max_chains: 300
     - _target_: boltz.data.filter.dynamic.date.DateFilter
-      date: "2021-09-30"
+#      date: "2021-09-30"
+      date: "2023-01-13"
       ref: released
     - _target_: boltz.data.filter.dynamic.resolution.ResolutionFilter
       resolution: 4.0
