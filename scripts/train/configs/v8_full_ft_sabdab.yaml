@@ -35,7 +35,7 @@ data:
         min_neighborhood: 0
         max_neighborhood: 40
       filters:
-        - _target_: boltz.data.filter.dynamic.subset
+        - _target_: boltz.data.filter.dynamic.subset.SubsetFilter
           subset: /sci/nosnap/dina/bshor/202509_boltz_train/data/sabdab_ids.txt
       split: ./scripts/train/assets/validation_ids.txt
 
