@@ -7,11 +7,10 @@ trainer:
   max_epochs: -1
   accumulate_grad_batches: 8    # to adjust depending on the number of devices
 
-# Optional set wandb here
- wandb:
-   name: ft_sabdab
-   project: boltz_train
-   entity: null
+wandb:
+ name: ft_sabdab
+ project: boltz_train
+ entity: null
 
 
 output: /sci/nosnap/dina/bshor/202509_boltz_train/train_output/ft_sabdab
