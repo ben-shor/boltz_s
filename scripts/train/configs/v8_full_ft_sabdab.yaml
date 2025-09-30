@@ -134,7 +134,10 @@ model:
     offload_to_cpu: false
 
   structure_prediction_training: true
-  confidence_prediction: true
+
+  # Too big to train confidence+structure, will need to train confidence later
+#  confidence_prediction: true
+  confidence_prediction: false
   alpha_pae: 1
   confidence_imitate_trunk: true
   confidence_model_args:
@@ -164,7 +167,7 @@ model:
     lr_scheduler: af3
     base_lr: 0.0
 #    max_lr: 0.0018
-    max_lr: 0.0009
+    max_lr: 0.0006
     lr_warmup_no_steps: 10
     lr_start_decay_after_n_steps: 50000
     lr_decay_every_n_steps: 50000
