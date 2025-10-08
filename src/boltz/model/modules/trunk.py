@@ -556,6 +556,14 @@ class PairformerModule(nn.Module):
             return s, z
         else:
             change_s, change_z = [0], [0]
+
+            # mask: expand to match dimensions
+            mask_s = mask.float()  # [B, N]
+            mask_z = mask[:, :, None] * mask[:, None, :]  # [B, N, N]
+
+            num_tokens_s = mask_s.sum()
+            num_tokens_z = mask_z.sum()
+
             for layer in self.layers:
                 new_s, new_z = layer(
                     s,
@@ -565,8 +573,12 @@ class PairformerModule(nn.Module):
                     chunk_size_tri_attn,
                     use_kernels=use_kernels,
                 )
-                change_s.append((new_s - s).abs().mean().item())
-                change_z.append((new_z - z).abs().mean().item())
+
+                # delta_s = new_s - s -> [B, N, 384]
+                # norm_s = delta_s.norm(dim=-1) -> [B, N]
+                # masked_norm_s = norm_s * mask_s -> [B, N]
+                change_s.append(((new_s - s).norm(dim=-1) * mask_s).sum() / num_tokens_s)
+                change_z.append(((new_z - z).norm(dim=-1) * mask_z).sum() / num_tokens_z)
 
                 s, z = new_s, new_z
             return s, z, (change_s, change_z)
