@@ -320,6 +320,7 @@ class Boltz1(LightningModule):
             timings["input_embedding"] = time.time() - start_time_embed
 
             start_time_trunk = time.time()
+            changes_s, changes_z = [], []
             for i in range(recycling_steps + 1):
                 with torch.set_grad_enabled(self.training and (i == recycling_steps)):
                     # Fixes an issue with unused parameters in autocast
@@ -346,19 +347,35 @@ class Boltz1(LightningModule):
                     else:
                         pairformer_module = self.pairformer_module
 
-                    s, z = pairformer_module(
-                        s,
-                        z,
-                        mask=mask,
-                        pair_mask=pair_mask,
-                        use_kernels=self.use_kernels,
-                    )
+                    if self.training:
+                        s, z = pairformer_module(
+                            s,
+                            z,
+                            mask=mask,
+                            pair_mask=pair_mask,
+                            use_kernels=self.use_kernels,
+                        )
+                    else:
+                        s, z, (cur_changes_s, cur_changes_z) = pairformer_module(
+                            s,
+                            z,
+                            mask=mask,
+                            pair_mask=pair_mask,
+                            use_kernels=self.use_kernels,
+                            return_changes_in_layers=True,
+                        )
+                        changes_s.append(cur_changes_s)
+                        changes_z.append(cur_changes_z)
 
             pdistogram = self.distogram_module(z)
             dict_out = {
                 "pdistogram": pdistogram,
                 "s": s,
                 "z": z,
+                # "changes_s": torch.tensor(changes_s),
+                # "changes_z": torch.tensor(changes_z),
+                "changes_s": changes_s,
+                "changes_z": changes_z,
             }
             timings["trunk"] = time.time() - start_time_trunk
             if return_after_trunk:
@@ -1233,6 +1250,8 @@ class Boltz1(LightningModule):
             pred_dict["s"] = out["s"]
             pred_dict["z"] = out["z"]
             pred_dict["timings"] = out["timings"]
+            pred_dict["changes_s"] = out["changes_s"]
+            pred_dict["changes_z"] = out["changes_z"]
             if "pdistogram_loss" in out:
                 pred_dict["pdistogram_loss"] = out["pdistogram_loss"]
             if self.predict_args.get("write_confidence_summary", True) and "complex_plddt" in out:

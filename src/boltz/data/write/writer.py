@@ -88,6 +88,13 @@ class BoltzWriter(BasePredictionWriter):
                 with path.open("w") as f:
                     json.dump(prediction["timings"], f, indent=4)
 
+            if "changes_s" in prediction:
+                (self.output_dir / record.id).mkdir(exist_ok=True)
+                path = self.output_dir / record.id / "layer_changes.json"
+                data = {"s": prediction["changes_s"], "z": prediction["changes_z"]}
+                with path.open("w") as f:
+                    json.dump(data, f, indent=4)
+
             # Load the structure
             path = self.data_dir / f"{record.id}.npz"
             if self.boltz2:

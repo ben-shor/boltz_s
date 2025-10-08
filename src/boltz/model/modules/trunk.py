@@ -513,6 +513,7 @@ class PairformerModule(nn.Module):
         pair_mask: Tensor,
         chunk_size_tri_attn: Optional[int] = None,
         use_kernels: bool = False,
+        return_changes_in_layers: bool = False,
     ) -> tuple[Tensor, Tensor]:
         """Perform the forward pass.
 
@@ -542,16 +543,34 @@ class PairformerModule(nn.Module):
         else:
             chunk_size_tri_attn = None
 
-        for layer in self.layers:
-            s, z = layer(
-                s,
-                z,
-                mask,
-                pair_mask,
-                chunk_size_tri_attn,
-                use_kernels=use_kernels,
-            )
-        return s, z
+        if not return_changes_in_layers:
+            for layer in self.layers:
+                s, z = layer(
+                    s,
+                    z,
+                    mask,
+                    pair_mask,
+                    chunk_size_tri_attn,
+                    use_kernels=use_kernels,
+                )
+            return s, z
+        else:
+            change_s, change_z = [0], [0]
+            for layer in self.layers:
+                new_s, new_z = layer(
+                    s,
+                    z,
+                    mask,
+                    pair_mask,
+                    chunk_size_tri_attn,
+                    use_kernels=use_kernels,
+                )
+                change_s.append((new_s - s).abs().mean().item())
+                change_z.append((new_z - z).abs().mean().item())
+
+                s, z = new_s, new_z
+            return s, z, (change_s, change_z)
+
 
 
 class PairformerLayer(nn.Module):
