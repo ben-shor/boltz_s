@@ -577,8 +577,8 @@ class PairformerModule(nn.Module):
                 # delta_s = new_s - s -> [B, N, 384]
                 # norm_s = delta_s.norm(dim=-1) -> [B, N]
                 # masked_norm_s = norm_s * mask_s -> [B, N]
-                change_s.append(((new_s - s).norm(dim=-1) * mask_s).sum() / num_tokens_s)
-                change_z.append(((new_z - z).norm(dim=-1) * mask_z).sum() / num_tokens_z)
+                change_s.append((((new_s - s).norm(dim=-1) * mask_s).sum() / num_tokens_s).item())
+                change_z.append((((new_z - z).norm(dim=-1) * mask_z).sum() / num_tokens_z).item())
 
                 s, z = new_s, new_z
             return s, z, (change_s, change_z)
